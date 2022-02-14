@@ -48,6 +48,11 @@ func DownloadDaily() string {
 	return DownloadBkrs(dlUrlrx, "daily")
 }
 
+func DownloadDailyRu() string {
+	dlUrlrx := regexp.MustCompile(`downloads\/daily\/dabruks_\d+\.gz`)
+	return DownloadBkrs(dlUrlrx, "daily ru")
+}
+
 func DownloadBkrs(dlUrlrx *regexp.Regexp, version string) string {
 	fmt.Printf("Downloading latest %s version...\n", version)
 	resFileName := "dabkrs.gz"
@@ -97,7 +102,7 @@ func DownloadBkrsFile(url, resFileName string) {
 	}
 }
 
-func ExportDict(inputFile, outputFile string, extended bool, conversion int) error {
+func ExportDict(inputFile, outputFile string, extended, ru bool, conversion int) error {
 
 	yomi.CreateTempDir()
 
@@ -123,28 +128,36 @@ func ExportDict(inputFile, outputFile string, extended bool, conversion int) err
 		scanner = bufio.NewScanner(file)
 	}
 
-	ConvertDict(scanner, extended, conversion)
+	ConvertDict(scanner, extended, ru, conversion)
 
 	revision := filepath.Base(inputFile)
+
 	title := "大БКРС"
 	titleLat := "BKRS"
-
-	switch conversion {
-	case 0:
-		titleLat += "-Simpl"
-	case 1:
-		titleLat += "-Trad"
-	case 2:
-		titleLat += "-Trad-Addon"
-		title += "-t"
-	}
-
-	if extended {
-		titleLat += "-Extended"
-	}
-
 	url := "https://bkrs.info/"
 	description := "Большой китайско-русский словарь, compiled with bkrs2yomi"
+
+	if ru {
+		title = "БРуКС"
+		titleLat = "BRuKS"
+		description = "Большой русско-китайский словарь, compiled with bkrs2yomi"
+
+	} else {
+
+		switch conversion {
+		case 0:
+			titleLat += "-Simpl"
+		case 1:
+			titleLat += "-Trad"
+		case 2:
+			titleLat += "-Trad-Addon"
+			title += "-t"
+		}
+
+		if extended {
+			titleLat += "-Extended"
+		}
+	}
 
 	yomi.CreateIndexFile(revision, title, url, description)
 
@@ -155,7 +168,7 @@ func ExportDict(inputFile, outputFile string, extended bool, conversion int) err
 	return nil
 }
 
-func ConvertDict(scanner *bufio.Scanner, extended bool, conversion int) {
+func ConvertDict(scanner *bufio.Scanner, extended, ru bool, conversion int) {
 
 	var s2t *opencc.OpenCC
 
@@ -189,7 +202,13 @@ func ConvertDict(scanner *bufio.Scanner, extended bool, conversion int) {
 		case 0:
 			curBkrsTerm.Expression = line
 		case 1:
+			if ru {
+				curBkrsTerm.Meaning = CleanBkrsLine(line, cleaner)
+				result = append(result, ConvertBkrsTermToYomiTerm(curBkrsTerm))
+				count++
+			}
 			curBkrsTerm.Pinyin = line
+
 		case 2:
 			curBkrsTerm.Meaning = CleanBkrsLine(line, cleaner)
 			if extended || curBkrsTerm.Pinyin != "_" {
