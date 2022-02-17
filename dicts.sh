@@ -6,3 +6,4 @@ cd dist
 ../bin/bkrs2yomi -daily -extended
 ../bin/bkrs2yomi -daily -type=1
 ../bin/bkrs2yomi -daily -type=2
+../bin/bkrs2yomi -daily -ru
