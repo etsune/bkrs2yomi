@@ -3,6 +3,9 @@ name: Release
 on:
   schedule:
     - cron: '33 3 1 * *'
+  push:
+    tags:
+      - "v*"
 
 jobs:
 
@@ -17,11 +20,14 @@ jobs:
         go-version: 1.17
 
     - name: Build
-      run: dicts.sh
+      run: ./dicts.sh
+
+    - name: Get current date
+      run: echo "CUR_DATE=$(date '+%Y%m%d')" >> $GITHUB_ENV
 
     - name: Upload
       uses: softprops/action-gh-release@v1
-      with: 
-        tag_name: ${{ date "+%Y%m%d" }}
+      with:
+        tag_name: ${{ env.CUR_DATE }}
         files: dist/B*
         fail_on_unmatched_files: true
