@@ -25,14 +25,18 @@ type bkrsTerm struct {
 }
 
 type bkrsCleaner struct {
-	newlineRx *regexp.Regexp
-	bbCodeRx  *regexp.Regexp
+	newlineRx  *regexp.Regexp
+	bbCodeRx   *regexp.Regexp
+	examplesRx *regexp.Regexp
+	noExamples bool
 }
 
-func makeCleaner() *bkrsCleaner {
+func makeCleaner(noexamples bool) *bkrsCleaner {
 	return &bkrsCleaner{
-		newlineRx: regexp.MustCompile(`\[m\d\]`),
-		bbCodeRx:  regexp.MustCompile(`\[\/?(m\d?|c|p|ref|b|i|ex|\*)\]`),
+		newlineRx:  regexp.MustCompile(`\[m\d\]`),
+		bbCodeRx:   regexp.MustCompile(`\[\/?(m\d?|c|p|ref|b|i|ex|\*)\]`),
+		examplesRx: regexp.MustCompile(`\[m.\]\[\*\]\[(ex|e)\].+?\[\/(ex|e)\]\[\/\*\]\[\/m\]`),
+		noExamples: noexamples,
 	}
 }
 
@@ -102,7 +106,7 @@ func DownloadBkrsFile(url, resFileName string) {
 	}
 }
 
-func ExportDict(inputFile, outputFile string, extended, ru bool, conversion int) error {
+func ExportDict(inputFile, outputFile string, extended, ru, noexamples bool, conversion int) error {
 
 	yomi.CreateTempDir()
 
@@ -128,7 +132,7 @@ func ExportDict(inputFile, outputFile string, extended, ru bool, conversion int)
 		scanner = bufio.NewScanner(file)
 	}
 
-	ConvertDict(scanner, extended, ru, conversion)
+	ConvertDict(scanner, extended, ru, noexamples, conversion)
 
 	revision := filepath.Base(inputFile)
 
@@ -159,6 +163,10 @@ func ExportDict(inputFile, outputFile string, extended, ru bool, conversion int)
 		}
 	}
 
+	if noexamples {
+		titleLat += "-NoExamples"
+	}
+
 	yomi.CreateIndexFile(revision, title, url, description)
 
 	yomi.CreateZip(titleLat + "_yomichan.zip")
@@ -168,7 +176,7 @@ func ExportDict(inputFile, outputFile string, extended, ru bool, conversion int)
 	return nil
 }
 
-func ConvertDict(scanner *bufio.Scanner, extended, ru bool, conversion int) {
+func ConvertDict(scanner *bufio.Scanner, extended, ru, noexamples bool, conversion int) {
 
 	var s2t *opencc.OpenCC
 
@@ -179,7 +187,7 @@ func ConvertDict(scanner *bufio.Scanner, extended, ru bool, conversion int) {
 	// яп версия
 	// t2jp, _ := opencc.New("t2jp")
 
-	cleaner := makeCleaner()
+	cleaner := makeCleaner(noexamples)
 
 	i := 0
 	count := 0
@@ -264,6 +272,9 @@ func ConvertDict(scanner *bufio.Scanner, extended, ru bool, conversion int) {
 }
 
 func CleanBkrsLine(meaning string, cleaner *bkrsCleaner) string {
+	if cleaner.noExamples {
+		meaning = cleaner.examplesRx.ReplaceAllString(meaning, "")
+	}
 	meaning = cleaner.newlineRx.ReplaceAllString(meaning, "\n")
 	meaning = cleaner.bbCodeRx.ReplaceAllString(meaning, "")
 	meaning = strings.Replace(meaning, "\\[", "[", -1)

@@ -24,6 +24,7 @@ func main() {
 		daily      = flag.Bool("daily", false, "downloads latest daily version and uses it for the conversion.")
 		conversion = flag.Int("type", 0, "type of the conversion. 0 - simplified hanzi, 1 - traditional, 2 - traditional addon for type 0, excluding duplicates.")
 		ru         = flag.Bool("ru", false, "working with ru-zh version (entry has 2 lines instead of 3)")
+		noexamples = flag.Bool("noexamples", false, "do not include examples in the output")
 	)
 
 	var inputFile string
@@ -48,7 +49,7 @@ func main() {
 		inputFile = flag.Arg(0)
 	}
 
-	if err := bkrs2yomi.ExportDict(inputFile, flag.Arg(1), *extended, *ru, *conversion); err != nil {
+	if err := bkrs2yomi.ExportDict(inputFile, flag.Arg(1), *extended, *ru, *noexamples, *conversion); err != nil {
 		log.Fatal(err)
 	}
 }
